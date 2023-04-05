@@ -1,7 +1,7 @@
 import random
 from enum import Enum
 from itertools import product
-
+from typing import Dict
 MATRIX_SIZE = 100
 
 P = 0.5  # population density
@@ -63,7 +63,7 @@ class EnvMap:
                  n_rows: int,
                  n_cols: int,
                  population_density: float,
-                 persons_distribution: dict[DoubtLevel, float]):
+                 persons_distribution: Dict[DoubtLevel, float]):
         self._n_rows = n_rows
         self._n_cols = n_cols
         if population_density > 1 or population_density < 0:
