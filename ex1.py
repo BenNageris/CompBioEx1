@@ -48,18 +48,31 @@ class Cell:
 
     def __init__(self, state, position):
         self._state = state
-        self._position = position
+        self._position = Location(*position)
+
+    def __str__(self) -> str:
+        return f"{self._position}:{self._state}"
 
 
 class PersonCell(Cell):
-    def __init__(self, state, position):
-        super().__init__(state=state, position=position)
+    def __init__(
+            self,
+            state,
+            position,
+            heard_rumour: bool = False,
+            cool_down_episode_countdown: int = -1):
+        super().__init__(state=state.value, position=position)
         self._probability_to_believe = PROBABILITY_TO_BELIEVE[state]
+        self._heard_rumour = heard_rumour
+        self._cool_down_episode_countdown = cool_down_episode_countdown
+
+    def __str__(self) -> str:
+        return f"{super().__str__()}, believe percentage:{self._probability_to_believe}"
 
 
 class EmptyCell(Cell):
-    def __init__(self, state, position):
-        super().__init__(state=state, position=position)
+    def __init__(self, position):
+        super().__init__(state=CellStates.EMPTY, position=position)
 
 
 class EnvMap:
@@ -89,7 +102,7 @@ class EnvMap:
         self.init_matrix()
 
     @staticmethod
-    def _create_matrix(n_rows: int, n_cols: int) -> typing.List[typing.List]:
+    def _create_matrix(n_rows: int, n_cols: int) -> typing.List[typing.List[typing.Any]]:
         matrix = []
         for r in range(n_rows):
             row = []
@@ -139,6 +152,26 @@ class EnvMap:
             persons_location=self.persons_location,
             persons_distribution=self._persons_distribution,
         )
+        self._init_matrix_cells(
+            doubt_level_locations_dict=self.doubt_level_locations_dict
+        )
+        for row in range(self._n_rows):
+            for col in range(self._n_cols):
+                print(self._matrix[row][col])
+
+    def _init_matrix_cells(self, doubt_level_locations_dict: Dict[Tuple[int, int], DoubtLevel]):
+        for (x, y), doubt_level in doubt_level_locations_dict.items():
+            self._matrix[x][y] = PersonCell(
+                state=doubt_level,
+                position=Location(x=x, y=y),
+            )
+        for row in range(self._n_rows):
+            for col in range(self._n_cols):
+                if self._matrix[row][col] is None:
+                    self._matrix[row][col] = EmptyCell(
+                        position=Location(x=row, y=col)
+                    )
+        # print(self._matrix)
 
     def _get_doubt(self, location: Location):
         for di in self.doubt_level_locations_dict:
@@ -173,7 +206,7 @@ class EnvMap:
         first_spreader = Location(
             *self._get_random_person_location()
         )
-        print(first_spreader)
+        print(f"first spreader:{first_spreader}")
         self._matrix[first_spreader.x][first_spreader.y] = True
         self.spread_around(location=first_spreader)
 
@@ -189,4 +222,4 @@ if __name__ == "__main__":
         persons_distribution=PERSONS_DISTRIBUTION,
     )
     env_map.spread_rumor()
-    print(env_map._matrix)
+    # print(env_map._matrix)
