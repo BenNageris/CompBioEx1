@@ -72,7 +72,7 @@ class PersonCell(Cell):
 
 class EmptyCell(Cell):
     def __init__(self, position):
-        super().__init__(state=CellStates.EMPTY, position=position)
+        super().__init__(state=CellStates.EMPTY.value, position=position)
 
 
 class EnvMap:
