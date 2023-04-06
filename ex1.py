@@ -1,7 +1,7 @@
 import random
 from enum import Enum
 from itertools import product
-from typing import Dict
+from typing import Dict, Tuple
 import typing
 
 Location = typing.NamedTuple("Location", [("x", int), ("y", int)])
@@ -171,10 +171,14 @@ class EnvMap:
 
     def spread_rumor(self):
         first_spreader = Location(
-            random.randint(0, self._n_rows), random.randint(0, self._n_cols)
+            *self._get_random_person_location()
         )
+        print(first_spreader)
         self._matrix[first_spreader.x][first_spreader.y] = True
         self.spread_around(location=first_spreader)
+
+    def _get_random_person_location(self) -> Tuple[int, int]:
+        return random.choice(self.persons_location)
 
 
 if __name__ == "__main__":
