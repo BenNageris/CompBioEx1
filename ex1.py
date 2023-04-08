@@ -9,6 +9,7 @@ Location = typing.NamedTuple("Location", [("x", int), ("y", int)])
 MATRIX_SIZE = 100
 
 P = 0.5  # population density
+L = 10
 
 
 class DoubtLevel(Enum):
@@ -60,11 +61,12 @@ class PersonCell(Cell):
             state,
             position,
             heard_rumour: bool = False,
-            cool_down_episode_countdown: int = -1):
+            cool_down_episode_countdown: int = L):
         super().__init__(state=state.value, position=position)
         self._probability_to_believe = PROBABILITY_TO_BELIEVE[state]
         self._heard_rumour = heard_rumour
         self._cool_down_episode_countdown = cool_down_episode_countdown
+        self._n_cool_down_episodes_countdown = cool_down_episode_countdown
 
     def __str__(self) -> str:
         return f"{super().__str__()}, believe percentage:{self._probability_to_believe}"
