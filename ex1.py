@@ -235,6 +235,7 @@ class EnvMap:
 
     def _get_believed_neighbors_location(self, x: int, y: int) -> List[Location]:
         rumours_believers: List[Location] = []
+        # TODO: fix WRAP-AROUND policy is not an obligation!
         for i in [-1, 0, 1]:
             for j in [-1, 0, 1]:
                 if i == 0 and j == 0:
@@ -254,7 +255,6 @@ class EnvMap:
                   f" {str(cell)}")
             return
         cell.set_spread_already()
-        # TODO: fix WRAP-AROUND policy is not an obligation!
         rumours_believers_location = self._get_believed_neighbors_location(x=x, y=y)
         print(rumours_believers_location)
 
