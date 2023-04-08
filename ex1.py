@@ -1,7 +1,8 @@
 import random
+from copy import deepcopy
 from enum import Enum
 from itertools import product
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 import typing
 
 Location = typing.NamedTuple("Location", [("x", int), ("y", int)])
@@ -54,6 +55,15 @@ class Cell:
     def __str__(self) -> str:
         return f"{self._position}:{self._state}"
 
+    def set_heard_rumour(self, heard_rumour: bool = True):
+        pass
+
+    def hear_rumour(self):
+        pass
+
+    def can_spread_rumour(self):
+        return False
+
 
 class PersonCell(Cell):
     def __init__(
@@ -69,7 +79,23 @@ class PersonCell(Cell):
         self._n_cool_down_episodes_countdown = cool_down_episode_countdown
 
     def __str__(self) -> str:
-        return f"{super().__str__()}, believe percentage:{self._probability_to_believe}"
+        return (f"{super().__str__()},"
+                f" believe percentage:{self._probability_to_believe},"
+                f" heard rumour:{self._heard_rumour}")
+
+    def set_heard_rumour(self, heard_rumour: bool = True):
+        self._heard_rumour = heard_rumour
+
+    def hear_rumour(self):
+        did_believe_rumour = (
+            True if random.random() >= self._probability_to_believe else False
+        )
+        # TODO: check-ask class, can a person change its mind (believe a rumour and then not)?
+        if did_believe_rumour:
+            self.set_heard_rumour(heard_rumour=True)
+
+    def can_spread_rumour(self):
+        return self._heard_rumour is True and self._n_cool_down_episodes_countdown == 0
 
 
 class EmptyCell(Cell):
@@ -99,7 +125,7 @@ class EnvMap:
                 f"Invalid value of persons distribution, it should be have {len(DoubtLevel)} values"
             )
         self._persons_distribution = persons_distribution
-        self._matrix = self._create_matrix(n_rows=n_rows, n_cols=n_cols)
+        self._matrix: List[List[Cell]] = self._create_matrix(n_rows=n_rows, n_cols=n_cols)
         self._num_dimensions = 2
         self.init_matrix()
 
@@ -157,9 +183,8 @@ class EnvMap:
         self._init_matrix_cells(
             doubt_level_locations_dict=self.doubt_level_locations_dict
         )
-        for row in range(self._n_rows):
-            for col in range(self._n_cols):
-                print(self._matrix[row][col])
+
+        self.rumour_spreadors_next_turn = self._init_first_spread_rumor()
 
     def _init_matrix_cells(self, doubt_level_locations_dict: Dict[Tuple[int, int], DoubtLevel]):
         for (x, y), doubt_level in doubt_level_locations_dict.items():
@@ -173,47 +198,59 @@ class EnvMap:
                     self._matrix[row][col] = EmptyCell(
                         position=Location(x=row, y=col)
                     )
-        # print(self._matrix)
 
     def _get_doubt(self, location: Location):
         for di in self.doubt_level_locations_dict:
             if location in di:
                 return di
 
-    def _cell_got_rumor(self, location: Location) -> bool:
+    def _cell_got_rumor(self, location: Location) -> None:
         # if no such location or rumor was previously accepted\rejected
         if (
             location not in self.persons_location
             or self._matrix[location.x][location.y] is not None
         ):
-            return False
-        doubt = self.doubt_level_locations_dict[location]
-        self._matrix[location.x][location.y] = (
-            True if random.random() >= PROBABILITY_TO_BELIEVE[doubt] else False
-        )
-        return self._matrix[location.x][location.y]
+            return
+        self._matrix[location.x][location.y].hear_rumour()
 
-    def spread_around(self, location: Location):
-        accepted: typing.List[Location] = []
+    def get_cell_location(self, cell: Cell) -> Tuple[int, int]:
+        for row in range(self._n_rows):
+            for col in range(self._n_cols):
+                if self._matrix[row][col] is cell:
+                    return row, col
+        print(f"Something is wrong, cell not found")
+        return None, None
+
+    def spread_around(self, cell: Cell):
+        x, y = self.get_cell_location(cell)
+        print(f"({x},{y})")
+        if not cell.can_spread_rumour():
+            print(f"cell located in ({x},{y}) can't spread rumour,"
+                  f" {str(cell)}")
+            return
+        # TODO: fix WRAP-AROUND policy is not an obligation!
         for i in [-1, 0, 1]:
             for j in [-1, 0, 1]:
-                neighbor = Location(location.x + i, location.y + j)
-                if self._cell_got_rumor(Location(location.x + i, location.y + j)):
-                    accepted.append(neighbor)
+                neighbor = Location(x + i, y + j)
+                self._cell_got_rumor(neighbor)
 
-        for person in accepted:
-            self.spread_around(person)
+    def _hear_about_rumour(self, location: Location):
+        self._matrix[location.x][location.y].hear_rumour()
 
-    def spread_rumor(self):
-        first_spreader = Location(
-            *self._get_random_person_location()
-        )
+    def _init_first_spread_rumor(self) -> List[PersonCell]:
+        first_spreader: PersonCell = self._get_random_person_cell()
         print(f"first spreader:{first_spreader}")
-        self._matrix[first_spreader.x][first_spreader.y] = True
-        self.spread_around(location=first_spreader)
+        first_spreader.set_heard_rumour(heard_rumour=True)
+        # this list represents the cells that will spread the rumour next stage
+        return [first_spreader]
 
-    def _get_random_person_location(self) -> Tuple[int, int]:
-        return random.choice(self.persons_location)
+    def rumour_spread(self):
+        next_turn_matrix = deepcopy(self._matrix)
+        # iterate over matrix,  spread rumour and create the next turn's matrix
+
+    def _get_random_person_cell(self) -> PersonCell:
+        x, y = random.choice(self.persons_location)
+        return self._matrix[x][y]
 
 
 if __name__ == "__main__":
@@ -223,5 +260,5 @@ if __name__ == "__main__":
         population_density=P,
         persons_distribution=PERSONS_DISTRIBUTION,
     )
-    env_map.spread_rumor()
+    # env_map.spread_rumor()
     # print(env_map._matrix)
