@@ -14,10 +14,13 @@ L = 10
 
 
 class DoubtLevel(Enum):
-    S1 = "S1"
-    S2 = "S2"
-    S3 = "S3"
-    S4 = "S4"
+    S1 = 1
+    S2 = 2
+    S3 = 3
+    S4 = 4
+
+
+MIN_DOUBT_LEVEL = 1
 
 
 class CellStates(Enum):
@@ -25,7 +28,7 @@ class CellStates(Enum):
     S2 = DoubtLevel.S2
     S3 = DoubtLevel.S3
     S4 = DoubtLevel.S4
-    EMPTY = "Empty"
+    EMPTY = 0
 
 
 PERSONS_DISTRIBUTION = {
@@ -58,7 +61,7 @@ class Cell:
     def set_heard_rumour(self, heard_rumour: bool = True):
         pass
 
-    def should_believe_to_rumour(self) -> bool:
+    def should_believe_to_rumour(self, n_heard_rumour) -> bool:
         return False
 
     def set_spread_already(self, spread_already=True):
@@ -78,6 +81,7 @@ class PersonCell(Cell):
             cool_down_episode_countdown: int = L):
         super().__init__(state=state.value, position=position)
         self._probability_to_believe = PROBABILITY_TO_BELIEVE[state]
+        self._doubt_level = state
         self._heard_rumour = heard_rumour
         self._spread_already = False
         self._cool_down_episode_countdown = cool_down_episode_countdown
@@ -105,8 +109,13 @@ class PersonCell(Cell):
     def set_spread_already(self, spread_already=True):
         self._spread_already = spread_already
 
-    def should_believe_to_rumour(self):
-        return random.random() < self._probability_to_believe
+    def should_believe_to_rumour(self, n_heard_rumour):
+        prob_to_believe = self._probability_to_believe
+        # if a person hears 2 or more times the rumour in one episode the probability to believe increases
+        if n_heard_rumour >= 2:
+            temporal_doubt_level = DoubtLevel(max(self._doubt_level.value - 1, MIN_DOUBT_LEVEL))
+            prob_to_believe = PROBABILITY_TO_BELIEVE[temporal_doubt_level]
+        return random.random() < prob_to_believe
 
     def can_spread_rumour(self):
         return self._heard_rumour is True and self._n_cool_down_episodes_countdown == 0
@@ -282,18 +291,25 @@ class EnvMap:
 
     def spread_rumor(self):
         # iterate over matrix,  spread rumour and create the next turn's matrix
-        can_spread_person_cells: Dict[Location] = {}  # actually List[PersonCell]
-        for row in range(self._n_rows):
-            for col in range(self._n_cols):
-                if self._matrix[row][col].can_spread_rumour():
-                    print(f"can spread rumour:({row}:{col})")
-                    can_spread_person_cells[Location(x=row, y=col)] = self._matrix[row][col]
+        can_spread_person_cells: Dict[Location, PersonCell] = {}
+        for row, col in self.persons_location:
+            if self._matrix[row][col].can_spread_rumour():
+                can_spread_person_cells[Location(x=row, y=col)] = self._matrix[row][col]
 
         total_rumour_spreads_in_episode = Counter()
         for spread_rumour_location, cell in can_spread_person_cells.items():
             neighbors = self._get_all_neighbors_location(spread_rumour_location)
             total_rumour_spreads_in_episode.update(neighbors)
 
+        rumour_believers: List[Cell] = []
+        for neighbor_location, number_heard_about_rumour in total_rumour_spreads_in_episode.items():
+            cell = self._matrix[neighbor_location.x][neighbor_location.y]
+            if cell.should_believe_to_rumour(number_heard_about_rumour):
+                print(f"adding ({neighbor_location.x}, {neighbor_location.y})")
+                rumour_believers.append(cell)
+
+        for rumour_believer in rumour_believers:
+            print(f"fetching {self.get_cell_location(rumour_believer)}")
         print(f"total rumour spreads:{total_rumour_spreads_in_episode}")
         # Check who got the rumour twice+ (will cause probability to believe deduct).
 
