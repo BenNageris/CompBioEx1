@@ -9,7 +9,7 @@ Location = typing.NamedTuple("Location", [("x", int), ("y", int)])
 
 MATRIX_SIZE = 100
 
-P = 0.5  # population density
+P = 1  # population density
 L = 10
 
 
@@ -59,17 +59,28 @@ class Cell:
         return f"{self._position}:{self._state}"
 
     def set_heard_rumour(self, heard_rumour: bool = True):
-        pass
+        raise NotImplementedError()
 
     def should_believe_to_rumour(self, n_heard_rumour) -> bool:
+        raise NotImplementedError()
+
+    def toggle_heard_rumour_sometime(self):
+        raise NotImplementedError()
+
+    def was_told_rumour(self):
+        raise NotImplementedError()
+
+    def next_turn(self):
+        raise NotImplementedError()
+
+    def did_hear_rumour_sometime(self):
         return False
 
     def set_spread_already(self, spread_already=True):
-        print("something is wrong, shouldn't call this function in Cell")
-        pass
+        raise NotImplementedError()
 
     def can_spread_rumour(self):
-        return False
+        raise NotImplementedError()
 
 
 class PersonCell(Cell):
@@ -77,12 +88,12 @@ class PersonCell(Cell):
             self,
             state,
             position,
-            heard_rumour: bool = False,
             cool_down_episode_countdown: int = L):
         super().__init__(state=state.value, position=position)
         self._probability_to_believe = PROBABILITY_TO_BELIEVE[state]
         self._doubt_level = state
-        self._heard_rumour = heard_rumour
+        self._heard_rumour_sometime = False
+        self._heard_rumour = False
         self._spread_already = False
         self._cool_down_episode_countdown = cool_down_episode_countdown
         self._n_cool_down_episodes_countdown = cool_down_episode_countdown
@@ -101,7 +112,14 @@ class PersonCell(Cell):
         self._n_cool_down_episodes_countdown = n
 
     def dec_n_cool_down_episode_countdown(self):
-        self._n_cool_down_episodes_countdown = self._n_cool_down_episodes_countdown - 1
+        if self._n_cool_down_episodes_countdown > 0:
+            self._n_cool_down_episodes_countdown = self._n_cool_down_episodes_countdown - 1
+
+    def did_hear_rumour_sometime(self):
+        return self._heard_rumour_sometime
+
+    def toggle_heard_rumour_sometime(self):
+        self._heard_rumour_sometime = True
 
     def set_heard_rumour(self, heard_rumour: bool = True):
         self._heard_rumour = heard_rumour
@@ -117,13 +135,48 @@ class PersonCell(Cell):
             prob_to_believe = PROBABILITY_TO_BELIEVE[temporal_doubt_level]
         return random.random() < prob_to_believe
 
+    def next_turn(self):
+        if self._heard_rumour or self._spread_already:
+            self.dec_n_cool_down_episode_countdown()
+        if self._n_cool_down_episodes_countdown == 0:
+            # RESET state of spread already
+            self.set_spread_already(spread_already=False)
+
     def can_spread_rumour(self):
         return self._heard_rumour is True and self._n_cool_down_episodes_countdown == 0
+
+    def was_told_rumour(self):
+        # rumour spread to neighbor
+        self.set_heard_rumour(True)
+        self.set_n_cool_down_episode_countdown(1)
+        # HEARD SOMETIME = True
+        self.toggle_heard_rumour_sometime()
 
 
 class EmptyCell(Cell):
     def __init__(self, position):
         super().__init__(state=CellStates.EMPTY.value, position=position)
+
+    def set_heard_rumour(self, heard_rumour: bool = True):
+        print("Set heard rumour in EmptyCell - something is wrong")
+        pass
+
+    def was_told_rumour(self):
+        print("Empty Cell was told rumour")
+        pass
+
+    def next_turn(self):
+        print("Empty Cell next turn")
+        pass
+
+    def can_spread_rumour(self):
+        return False
+
+    def should_believe_to_rumour(self, n_heard_rumour) -> bool:
+        return False
+
+    def set_spread_already(self, spread_already=True):
+        print("Set spread already in EmptyCell  - something is wrong")
 
 
 class EnvMap:
@@ -229,10 +282,8 @@ class EnvMap:
 
     def _cell_got_rumor(self, location: Location) -> bool:
         # if no such location or rumor was previously accepted\rejected
-        if (
-                location not in self.persons_location
-                # or self._matrix[location.x][location.y] is not None
-        ):
+        if location not in self.persons_location:
+            # or self._matrix[location.x][location.y] is not None
             return False
         return self._matrix[location.x][location.y].should_believe_to_rumour()
 
@@ -270,52 +321,69 @@ class EnvMap:
                     rumours_believers.append(neighbor)
         return rumours_believers
 
-    def spread_around(self, cell: Cell):
-        x, y = self.get_cell_location(cell)
-        print(f"({x},{y})")
-        if not cell.can_spread_rumour():
-            print(f"cell located in ({x},{y}) can't spread rumour,"
-                  f" {str(cell)}")
-            return
-        cell.set_spread_already()
-        rumours_believers_location = self._get_believed_neighbors_location(x=x, y=y)
-        for rumour_believer_location in rumours_believers_location:
-            cell = self._matrix[rumour_believer_location.x][rumour_believer_location.y]
-            cell.set_heard_rumour(heard_rumour=True)
-
     def _init_first_spread_rumor(self) -> None:
         first_spreader: PersonCell = self._get_random_person_cell()
+        first_spreader.toggle_heard_rumour_sometime()
         first_spreader.set_heard_rumour(heard_rumour=True)
         first_spreader.set_n_cool_down_episode_countdown(n=0)
         print(f"first spreader:{first_spreader}")
 
     def spread_rumor(self):
         # iterate over matrix,  spread rumour and create the next turn's matrix
-        can_spread_person_cells: Dict[Location, PersonCell] = {}
+
+        # calc who can spread rumour in this episode
+        rumour_spreaders: Dict[Location, PersonCell] = {}
         for row, col in self.persons_location:
             if self._matrix[row][col].can_spread_rumour():
-                can_spread_person_cells[Location(x=row, y=col)] = self._matrix[row][col]
+                rumour_spreaders[Location(x=row, y=col)] = self._matrix[row][col]
 
+        # Count number of times each cell got rumour
         total_rumour_spreads_in_episode = Counter()
-        for spread_rumour_location, cell in can_spread_person_cells.items():
+        for spread_rumour_location, cell in rumour_spreaders.items():
             neighbors = self._get_all_neighbors_location(spread_rumour_location)
             total_rumour_spreads_in_episode.update(neighbors)
 
+        # Calculate who believes the rumour
         rumour_believers: List[Cell] = []
         for neighbor_location, number_heard_about_rumour in total_rumour_spreads_in_episode.items():
             cell = self._matrix[neighbor_location.x][neighbor_location.y]
             if cell.should_believe_to_rumour(number_heard_about_rumour):
-                print(f"adding ({neighbor_location.x}, {neighbor_location.y})")
                 rumour_believers.append(cell)
+        # print(fr"rumour believers:{rumour_believers}")
 
+        # update the state of cells that were told the rumour in this episode
         for rumour_believer in rumour_believers:
-            print(f"fetching {self.get_cell_location(rumour_believer)}")
+            rumour_believer.was_told_rumour()
+
+        # update the rumour spreaders in this episode: RST cool time, spread_already to False, heard rumour to False
+        # print(f"rumour spreaders:{[str(rumour_spearder) for rumour_spearder in rumour_spreaders]}")
+        for rumour_spreader_location, rumour_spreader in rumour_spreaders.items():
+            rumour_spreader.set_heard_rumour(heard_rumour=False)
+            rumour_spreader.set_spread_already(spread_already=True)
+            rumour_spreader.reset_n_cool_down_episodes_countdown()
+
+        # Prepare for next turn (for example: dec cooldown values)
+        self.next_turn()
+
         print(f"total rumour spreads:{total_rumour_spreads_in_episode}")
         # Check who got the rumour twice+ (will cause probability to believe deduct).
+
+    def next_turn(self):
+        for row, col in self.persons_location:
+            self._matrix[row][col].next_turn()
 
     def _get_random_person_cell(self) -> PersonCell:
         x, y = random.choice(self.persons_location)
         return self._matrix[x][y]
+
+    def calculate_percentage_of_believeres(self):
+        n_persons = len(self.persons_location)
+        cnt = 0
+        for x,y in self.persons_location:
+            cell = self._matrix[x][y]
+            if cell.did_hear_rumour_sometime():
+                cnt += 1
+        return cnt / n_persons
 
 
 if __name__ == "__main__":
@@ -325,10 +393,7 @@ if __name__ == "__main__":
         population_density=P,
         persons_distribution=PERSONS_DISTRIBUTION,
     )
-    print(f"turn 1==================")
-    env_map.spread_rumor()
-
-    # print(f"turn 2==================")
-    # env_map.spread_rumor()
-
-    # print(env_map._matrix)
+    for i in range(100):
+        print(f"turn {i}==================")
+        env_map.spread_rumor()
+        print(env_map.calculate_percentage_of_believeres())
