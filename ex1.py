@@ -379,7 +379,7 @@ class EnvMap:
     def calculate_percentage_of_believeres(self):
         n_persons = len(self.persons_location)
         cnt = 0
-        for x,y in self.persons_location:
+        for x, y in self.persons_location:
             cell = self._matrix[x][y]
             if cell.did_hear_rumour_sometime():
                 cnt += 1
