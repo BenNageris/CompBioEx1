@@ -295,7 +295,7 @@ class EnvMap:
         print(f"Something is wrong, cell not found")
         return None, None
 
-    def _get_all_neighbors_location(self, location: Location) -> Counter[Location]:
+    def _get_all_neighbors_location(self, location: Location):# -> Counter[Location]:
         all_neighbors = Counter()
         for i in [-1, 0, 1]:
             for j in [-1, 0, 1]:
