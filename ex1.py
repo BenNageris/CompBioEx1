@@ -2,14 +2,14 @@ import random
 from collections import Counter
 from enum import Enum
 from itertools import product
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple, List, Callable
 import typing
 
 Location = typing.NamedTuple("Location", [("x", int), ("y", int)])
 
 MATRIX_SIZE = 100
 
-P = 1  # population density
+P = 0.8  # population density
 L = 10
 
 
@@ -186,11 +186,15 @@ class EnvMap:
             n_cols: int,
             population_density: float,
             persons_distribution: Dict[DoubtLevel, float],
+            n_cooldown: int,
+            policy: Callable,
     ):
         self.doubt_level_locations_dict = None
         self.persons_location = None
+        self._n_cooldown = n_cooldown
         self._n_rows = n_rows
         self._n_cols = n_cols
+        self._policy = policy
         if population_density > 1 or population_density < 0:
             raise Exception(
                 f"Invalid value of population density, it should be between 0 to 1, not:{population_density}"
@@ -203,7 +207,7 @@ class EnvMap:
         self._persons_distribution = persons_distribution
         self._matrix: List[List[Cell]] = self._create_matrix(n_rows=n_rows, n_cols=n_cols)
         self._num_dimensions = 2
-        self.init_matrix()
+        self.init_matrix(n_cooldown=self._n_cooldown)
 
     @staticmethod
     def _create_matrix(n_rows: int, n_cols: int) -> typing.List[typing.List[typing.Any]]:
@@ -243,7 +247,7 @@ class EnvMap:
             )
         return doubt_level_locations_dict
 
-    def init_matrix(self):
+    def init_matrix(self, n_cooldown: int):
         # init matrix with cells
         n_person_cells = int(self._n_cols * self._n_rows * self._population_density)
 
@@ -257,16 +261,18 @@ class EnvMap:
             persons_distribution=self._persons_distribution,
         )
         self._init_matrix_cells(
-            doubt_level_locations_dict=self.doubt_level_locations_dict
+            doubt_level_locations_dict=self.doubt_level_locations_dict,
+            n_cooldown=n_cooldown
         )
 
         self._init_first_spread_rumor()
 
-    def _init_matrix_cells(self, doubt_level_locations_dict: Dict[Tuple[int, int], DoubtLevel]):
+    def _init_matrix_cells(self, doubt_level_locations_dict: Dict[Tuple[int, int], DoubtLevel], n_cooldown: int):
         for (x, y), doubt_level in doubt_level_locations_dict.items():
             self._matrix[x][y] = PersonCell(
                 state=doubt_level,
                 position=Location(x=x, y=y),
+                cool_down_episode_countdown=n_cooldown
             )
         for row in range(self._n_rows):
             for col in range(self._n_cols):
@@ -297,29 +303,11 @@ class EnvMap:
 
     def _get_all_neighbors_location(self, location: Location):# -> Counter[Location]:
         all_neighbors = Counter()
-        for i in [-1, 0, 1]:
-            for j in [-1, 0, 1]:
-                if i == 0 and j == 0:
-                    # can't tell a rumour to myself
-                    continue
-                neighbor_location = Location(location.x + i, location.y + j)
-                if neighbor_location in self.persons_location:
-                    all_neighbors.update([neighbor_location])
+        for i, j in self._policy():
+            neighbor_location = Location(location.x + i, location.y + j)
+            if neighbor_location in self.persons_location:
+                all_neighbors.update([neighbor_location])
         return all_neighbors
-
-    def _get_believed_neighbors_location(self, x: int, y: int) -> List[Location]:
-        rumours_believers: List[Location] = []
-        # TODO: fix WRAP-AROUND policy is not an obligation!
-        for i in [-1, 0, 1]:
-            for j in [-1, 0, 1]:
-                if i == 0 and j == 0:
-                    # can't tell a rumour to myself
-                    continue
-                neighbor = Location(x + i, y + j)
-                if self._cell_got_rumor(neighbor):
-                    print(f"neighbor {neighbor} believes in rumour")
-                    rumours_believers.append(neighbor)
-        return rumours_believers
 
     def _init_first_spread_rumor(self) -> None:
         first_spreader: PersonCell = self._get_random_person_cell()
@@ -386,12 +374,28 @@ class EnvMap:
         return cnt / n_persons
 
 
+def all_around_policy():
+    for i in [-1, 0, 1]:
+        for j in [-1, 0, 1]:
+            if i == 0 and j == 0:
+                continue
+            yield i, j
+
+
+def four_directions_policy():
+    for i in [-1, 1]:
+        yield 0, i
+        yield i, 0
+
+
 if __name__ == "__main__":
     env_map = EnvMap(
         n_rows=MATRIX_SIZE,
         n_cols=MATRIX_SIZE,
         population_density=P,
         persons_distribution=PERSONS_DISTRIBUTION,
+        n_cooldown=4,
+        policy=all_around_policy
     )
     for i in range(100):
         print(f"turn {i}==================")

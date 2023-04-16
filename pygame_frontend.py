@@ -1,7 +1,13 @@
-import pygame
+from typing import List
 
-from ex1 import EnvMap
-from ex1 import L,P,PERSONS_DISTRIBUTION,MATRIX_SIZE
+import pygame
+from easygui import multenterbox
+
+from ex1 import EnvMap, all_around_policy, four_directions_policy
+from ex1 import L, P, PERSONS_DISTRIBUTION, MATRIX_SIZE, DoubtLevel
+
+NUMBER_OF_PARAMETERS = 6
+
 
 class Board:
     def __init__(self, board_size, tile_size, env_map: EnvMap):
@@ -12,7 +18,7 @@ class Board:
         self.BLACK = (0, 0, 0)
         self.WHITE = (255, 255, 255)
         self.GRAY = (128, 128, 128)
-        self.RED=(255, 0, 0)
+        self.RED = (255, 0, 0)
 
         # Create the board
         self.board = [[None] * self.env_map._n_rows for _ in range(self.env_map._n_cols)]
@@ -37,9 +43,9 @@ class Board:
         return board
 
     def run(self):
-        cell_margin=1
-        left_margin=20
-        top_margin=1
+        cell_margin = 1
+        left_margin = 20
+        top_margin = 1
         # Set the flag to continue the game
         running = True
         surface = pygame.display.set_mode((
@@ -47,7 +53,7 @@ class Board:
             self.board_size * self.tile_size + 40 + 100  # Add 100 to account for the text box and start button
         ))
 
-        #Draw background
+        # Draw background
         background_image = pygame.image.load('background.jpg')
         surface.blit(background_image, (0, 0))
 
@@ -58,7 +64,7 @@ class Board:
             # Check for events
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running=False
+                    running = False
                 elif event.type == pygame.MOUSEBUTTONUP:
                     # Check if the click occurred within the quit button
                     mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -76,9 +82,9 @@ class Board:
             self.update_board()
             # Draw the board
             for i in range(self.board_size):
-                for j in range(0,self.board_size):
+                for j in range(0, self.board_size):
                     tile_rect = pygame.Rect(j * self.tile_size, i * self.tile_size, self.tile_size, self.tile_size)
-                    pygame.draw.rect(surface, self.board[i][j], tile_rect,0)
+                    pygame.draw.rect(surface, self.board[i][j], tile_rect, 0)
                     pygame.draw.rect(surface, self.GRAY, tile_rect, 1)
 
             # Update the display
@@ -101,13 +107,80 @@ class Board:
         # Quit Pygame
         pygame.quit()
 
+
+def input_check(parameters: List[str]):
+    def _is_probability(p: float):
+        return 0 <= p <= 1
+
+    is_ok = True
+    if len(parameters) != NUMBER_OF_PARAMETERS:
+        is_ok = False
+    else:
+        p, d_s1, d_s2, d_s3, d_s4, n_cooldown = parameters
+
+        if sum([float(d_s1), float(d_s2), float(d_s3), float(d_s4)]) != 1:
+            is_ok = False
+        if not _is_probability(float(p)):
+            is_ok = False
+        if not n_cooldown.isnumeric():
+            # L value
+            is_ok = False
+    return is_ok
+
+
+def create_insert_parameters_window():
+    # getting the user input for the simulation
+    # window title
+    title = "Rumour Spread simulation parameters"
+    # informing the user which are the default params
+    text = ("Those are the default parameters to the rumour spread simulation. \n"
+            "You are more than welcome to change them!")
+    # inputs fields
+    inputs = ["P - Population density - percentage of people in the grid (0-1)",
+              "Percentage of S1 people - people who believe to every rumour",
+              "Percentage of S2 people - people who believe 2/3 of the times to rumour",
+              "Percentage of S3 people - people who believe 1/3 of the times to rumour",
+              "Percentage of S4 people - people who don't believe to rumours",
+              "L - number of cooldown turns"
+    ]
+    # list of default params
+    default_params = [
+        P,
+        PERSONS_DISTRIBUTION[DoubtLevel.S1],
+        PERSONS_DISTRIBUTION[DoubtLevel.S2],
+        PERSONS_DISTRIBUTION[DoubtLevel.S3],
+        PERSONS_DISTRIBUTION[DoubtLevel.S4],
+        L,
+    ]
+
+    output = multenterbox(text, title, inputs, default_params)
+    if not input_check(output):
+        print("Wrong input, Default params are being used..")
+        parameters = default_params
+    else:
+        parameters = output
+
+    print(f"using parameters:{parameters}")
+    return parameters
+
+
+def extract_parameters(parameters: List[str]):
+    p, d_s1, d_s2, d_s3, d_s4, n_cooldown = parameters
+    return float(p), float(d_s1), float(d_s2), float(d_s3), float(d_s4), int(n_cooldown)
+
+
 if __name__ == "__main__":
-    TILE_SIZE=5
+    parameters = create_insert_parameters_window()
+    p, d_s1, d_s2, d_s3, d_s4, n_cooldown = extract_parameters(parameters)
+
+    TILE_SIZE = 5
     env_map = EnvMap(
         n_rows=MATRIX_SIZE,
         n_cols=MATRIX_SIZE,
         population_density=P,
         persons_distribution=PERSONS_DISTRIBUTION,
+        n_cooldown=n_cooldown,
+        policy=all_around_policy
     )
 
     # Create a new Board instance with a board size of MATRIX_SIZE and a tile size of 50
