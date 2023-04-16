@@ -6,7 +6,8 @@ from easygui import multenterbox
 from ex1 import EnvMap, all_around_policy, four_directions_policy
 from ex1 import L, P, PERSONS_DISTRIBUTION, MATRIX_SIZE, DoubtLevel
 
-NUMBER_OF_PARAMETERS = 6
+NUMBER_OF_PARAMETERS = 7
+DEFAULT_NUMBER_OF_EPISODES = 100
 
 
 class Board:
@@ -42,7 +43,7 @@ class Board:
                     self.board[i][j] = self.WHITE
         return board
 
-    def run(self):
+    def run(self, number_of_episodes: int = 100):
         cell_margin = 1
         left_margin = 20
         top_margin = 1
@@ -58,7 +59,7 @@ class Board:
         surface.blit(background_image, (0, 0))
 
         # Loop until the user quits
-        for i in range(100):
+        for i in range(number_of_episodes):
             if not running:
                 break
             # Check for events
@@ -74,7 +75,6 @@ class Board:
                     button_y = self.board_size * self.tile_size - button_height
                     if button_x <= mouse_x < button_x + button_width and button_y <= mouse_y < button_y + button_height:
                         running = False
-
 
             # Draw the board
             print(f"turn {i}==================")
@@ -116,14 +116,13 @@ def input_check(parameters: List[str]):
     if len(parameters) != NUMBER_OF_PARAMETERS:
         is_ok = False
     else:
-        p, d_s1, d_s2, d_s3, d_s4, n_cooldown = parameters
+        n_episodes, p, d_s1, d_s2, d_s3, d_s4, n_cooldown = parameters
 
         if sum([float(d_s1), float(d_s2), float(d_s3), float(d_s4)]) != 1:
             is_ok = False
         if not _is_probability(float(p)):
             is_ok = False
-        if not n_cooldown.isnumeric():
-            # L value
+        if not n_cooldown.isnumeric() or not n_episodes.isnumeric():
             is_ok = False
     return is_ok
 
@@ -136,7 +135,8 @@ def create_insert_parameters_window():
     text = ("Those are the default parameters to the rumour spread simulation. \n"
             "You are more than welcome to change them!")
     # inputs fields
-    inputs = ["P - Population density - percentage of people in the grid (0-1)",
+    inputs = ["Number of episodes to run",
+              "P - Population density - percentage of people in the grid (0-1)",
               "Percentage of S1 people - people who believe to every rumour",
               "Percentage of S2 people - people who believe 2/3 of the times to rumour",
               "Percentage of S3 people - people who believe 1/3 of the times to rumour",
@@ -145,6 +145,7 @@ def create_insert_parameters_window():
     ]
     # list of default params
     default_params = [
+        DEFAULT_NUMBER_OF_EPISODES,
         P,
         PERSONS_DISTRIBUTION[DoubtLevel.S1],
         PERSONS_DISTRIBUTION[DoubtLevel.S2],
@@ -165,13 +166,13 @@ def create_insert_parameters_window():
 
 
 def extract_parameters(parameters: List[str]):
-    p, d_s1, d_s2, d_s3, d_s4, n_cooldown = parameters
-    return float(p), float(d_s1), float(d_s2), float(d_s3), float(d_s4), int(n_cooldown)
+    n_episodes, p, d_s1, d_s2, d_s3, d_s4, n_cooldown = parameters
+    return int(n_episodes), float(p), float(d_s1), float(d_s2), float(d_s3), float(d_s4), int(n_cooldown)
 
 
 if __name__ == "__main__":
     parameters = create_insert_parameters_window()
-    p, d_s1, d_s2, d_s3, d_s4, n_cooldown = extract_parameters(parameters)
+    n_episodes, p, d_s1, d_s2, d_s3, d_s4, n_cooldown = extract_parameters(parameters)
 
     TILE_SIZE = 5
     env_map = EnvMap(
@@ -187,4 +188,4 @@ if __name__ == "__main__":
     board = Board(MATRIX_SIZE, TILE_SIZE, env_map)
 
     # Run the board program
-    board.run()
+    board.run(n_episodes)
