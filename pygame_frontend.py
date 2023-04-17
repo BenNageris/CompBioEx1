@@ -3,7 +3,7 @@ from typing import List
 import pygame
 from easygui import multenterbox
 
-from ex1 import EnvMap, all_around_policy, four_directions_policy
+from ex1 import EnvMap, all_around_policy, four_directions_policy, wrap_all_around_policy
 from ex1 import L, P, PERSONS_DISTRIBUTION, MATRIX_SIZE, DoubtLevel
 
 NUMBER_OF_PARAMETERS = 7
@@ -62,19 +62,6 @@ class Board:
         for i in range(number_of_episodes):
             if not running:
                 break
-            # Check for events
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                elif event.type == pygame.MOUSEBUTTONUP:
-                    # Check if the click occurred within the quit button
-                    mouse_x, mouse_y = pygame.mouse.get_pos()
-                    button_width = 100
-                    button_height = 50
-                    button_x = self.board_size * self.tile_size - button_width
-                    button_y = self.board_size * self.tile_size - button_height
-                    if button_x <= mouse_x < button_x + button_width and button_y <= mouse_y < button_y + button_height:
-                        running = False
 
             # Draw the board
             print(f"turn {i}==================")
@@ -89,17 +76,6 @@ class Board:
 
             # Update the display
             pygame.display.update()
-
-            # Draw the quit button
-            button_width = 100
-            button_height = 50
-            button_x = self.board_size * self.tile_size - button_width
-            button_y = self.board_size * self.tile_size - button_height
-            pygame.draw.rect(surface, self.RED, (button_x, button_y, button_width, button_height))
-            font = pygame.font.Font(None, 36)
-            text = font.render("Quit", True, self.WHITE)
-            text_rect = text.get_rect(center=(button_x + button_width / 2, button_y + button_height / 2))
-            surface.blit(text, text_rect)
 
             # Update the screen
             pygame.display.flip()
@@ -181,7 +157,8 @@ if __name__ == "__main__":
         population_density=P,
         persons_distribution=PERSONS_DISTRIBUTION,
         n_cooldown=n_cooldown,
-        policy=all_around_policy
+        policy=wrap_all_around_policy,
+        # policy=all_around_policy
     )
 
     # Create a new Board instance with a board size of MATRIX_SIZE and a tile size of 50

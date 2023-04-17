@@ -303,8 +303,8 @@ class EnvMap:
 
     def _get_all_neighbors_location(self, location: Location):# -> Counter[Location]:
         all_neighbors = Counter()
-        for i, j in self._policy():
-            neighbor_location = Location(location.x + i, location.y + j)
+        for neighbor_location in self._policy(location):
+            # neighbor_location = Location(location.x + i, location.y + j)
             if neighbor_location in self.persons_location:
                 all_neighbors.update([neighbor_location])
         return all_neighbors
@@ -374,12 +374,26 @@ class EnvMap:
         return cnt / n_persons
 
 
-def all_around_policy():
+def wrap_all_around_policy(location: Location):
     for i in [-1, 0, 1]:
         for j in [-1, 0, 1]:
             if i == 0 and j == 0:
                 continue
-            yield i, j
+            neighbor_x = (location.x + i) % MATRIX_SIZE
+            neighbor_y = (location.y + j) % MATRIX_SIZE
+            yield Location(neighbor_x, neighbor_y)
+
+
+def all_around_policy(location: Location):
+    for i in [-1, 0, 1]:
+        for j in [-1, 0, 1]:
+            if i == 0 and j == 0:
+                continue
+            neighbor_x = location.x + i
+            neighbor_y = location.y + j
+            if neighbor_x < 0 or neighbor_x >= MATRIX_SIZE or neighbor_y < 0 or neighbor_y >= MATRIX_SIZE:
+                continue
+            yield Location(neighbor_x, neighbor_y)
 
 
 def four_directions_policy():
