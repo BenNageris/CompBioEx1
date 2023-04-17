@@ -281,26 +281,6 @@ class EnvMap:
                         position=Location(x=row, y=col)
                     )
 
-    def _get_doubt(self, location: Location):
-        for di in self.doubt_level_locations_dict:
-            if location in di:
-                return di
-
-    def _cell_got_rumor(self, location: Location) -> bool:
-        # if no such location or rumor was previously accepted\rejected
-        if location not in self.persons_location:
-            # or self._matrix[location.x][location.y] is not None
-            return False
-        return self._matrix[location.x][location.y].should_believe_to_rumour()
-
-    def get_cell_location(self, cell: Cell) -> Tuple[int, int]:
-        for row in range(self._n_rows):
-            for col in range(self._n_cols):
-                if self._matrix[row][col] is cell:
-                    return row, col
-        print(f"Something is wrong, cell not found")
-        return None, None
-
     def _get_all_neighbors_location(self, location: Location):# -> Counter[Location]:
         all_neighbors = Counter()
         for neighbor_location in self._policy(location):
@@ -353,8 +333,7 @@ class EnvMap:
         # Prepare for next turn (for example: dec cooldown values)
         self.next_turn()
 
-        print(f"total rumour spreads:{total_rumour_spreads_in_episode}")
-        # Check who got the rumour twice+ (will cause probability to believe deduct).
+        # print(f"total rumour spreads:{total_rumour_spreads_in_episode}")
 
     def next_turn(self):
         for row, col in self.persons_location:
