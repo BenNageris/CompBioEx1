@@ -13,12 +13,13 @@ def calc_spread_rate(env_map: EnvMap):
 def run_experiment_multiple_times(env_map: EnvMap, times):
     raw_stats = []
     for t in range(times):
-        belivers = []
+        believers = []
         for i in range(100):
             print(f"turn {i}==================")
             env_map.spread_rumor()
-            belivers.append(env_map.calculate_percentage_of_believeres())
-        raw_stats.append(belivers)
+            believers.append(env_map.calculate_percentage_of_believeres())
+        raw_stats.append(believers)
+        env_map = create_env_map()
     return raw_stats
 
 
@@ -31,13 +32,13 @@ def calc_growth(population):
 
 
 def calc_average_per_turn(raw_stats):
-    avgs = []
-    for i in range(len(raw_stats)):
-        sum = 0
-        for j in range(len(raw_stats[0])):
-            sum += raw_stats[i][j]
-        avgs.append(sum / len(raw_stats[0]))
-    return avgs
+    total_avgs = []
+    for turn_number in range(len(raw_stats[0])):
+        sum_for_turn = 0
+        for population in raw_stats:
+            sum_for_turn = sum_for_turn + population[turn_number]
+        total_avgs.append(sum_for_turn / len(raw_stats))
+    return total_avgs
 
 
 def raw_stats_to_growth(raw_stats):
@@ -46,16 +47,26 @@ def raw_stats_to_growth(raw_stats):
         growth.append(calc_growth(population))
     return growth
 
-
-if __name__ == "__main__":
-    TIMES = 10
-    env_map = EnvMap(
+def create_env_map():
+    return EnvMap(
         n_rows=MATRIX_SIZE,
         n_cols=MATRIX_SIZE,
         population_density=P,
         persons_distribution=PERSONS_DISTRIBUTION,
     )
+
+
+if __name__ == "__main__":
+    TIMES = 10
+    env_map = create_env_map()
     raw_stats = run_experiment_multiple_times(env_map, TIMES)
+
+    for believers_percentage in raw_stats:
+        print(f"population belivers percentage:{believers_percentage}")
+    print()
+
     print("Average believers per turn:=", calc_average_per_turn(raw_stats))
-    growth_all = raw_stats_to_growth(raw_stats)
-    print("Average growth per turn:=", calc_average_per_turn(growth_all))
+
+    # TODO: check if growth calculation need a fix
+    # growth_all = raw_stats_to_growth(raw_stats)
+    # print("Average growth per turn:=", calc_average_per_turn(growth_all))
