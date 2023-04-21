@@ -1,4 +1,6 @@
 from ex1 import EnvMap, MATRIX_SIZE, P, PERSONS_DISTRIBUTION
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def calc_spread_rate(env_map: EnvMap):
@@ -47,6 +49,7 @@ def raw_stats_to_growth(raw_stats):
         growth.append(calc_growth(population))
     return growth
 
+
 def create_env_map():
     return EnvMap(
         n_rows=MATRIX_SIZE,
@@ -54,6 +57,17 @@ def create_env_map():
         population_density=P,
         persons_distribution=PERSONS_DISTRIBUTION,
     )
+
+
+def plot_experiment(graph, label: str, times=None):
+    size = len(graph)
+
+    plt.plot(np.arange(0, size), graph, label=label, color='blue', marker=".", markersize=5)
+
+    plt.legend()
+    plt.title(f"repeated experiment :={times}", fontsize=10)
+    plt.suptitle("Rumors statistics graph", fontsize=20)
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -65,8 +79,17 @@ if __name__ == "__main__":
         print(f"population belivers percentage:{believers_percentage}")
     print()
 
-    print("Average believers per turn:=", calc_average_per_turn(raw_stats))
+    avg_believers = calc_average_per_turn(raw_stats)
+    print(f"Average believers per turn:={avg_believers}")
 
-    # TODO: check if growth calculation need a fix
-    # growth_all = raw_stats_to_growth(raw_stats)
-    # print("Average growth per turn:=", calc_average_per_turn(growth_all))
+    growth_all = raw_stats_to_growth(raw_stats)
+    avg_growth = calc_average_per_turn(growth_all)
+
+    for cnt, growth in enumerate(growth_all):
+        print(f"turn {cnt} =============")
+        print(growth)
+        print()
+    print(f"Average growth per turn:={avg_growth}")
+
+    plot_experiment(avg_believers, label="average believers", times=TIMES)
+    plot_experiment(avg_growth, label="average growth", times=TIMES)
