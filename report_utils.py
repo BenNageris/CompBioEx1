@@ -1,3 +1,5 @@
+from typing import Callable
+
 from ex1 import EnvMap, MATRIX_SIZE, P, PERSONS_DISTRIBUTION
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,16 +14,16 @@ def calc_spread_rate(env_map: EnvMap):
     return count / len(env_map.persons_location)
 
 
-def run_experiment_multiple_times(env_map: EnvMap, times):
+def run_experiment_multiple_times(env_map_creator: Callable[...,EnvMap], times):
     raw_stats = []
     for t in range(times):
         believers = []
+        env_map = env_map_creator()
         for i in range(100):
             print(f"turn {i}==================")
             env_map.spread_rumor()
             believers.append(env_map.calculate_percentage_of_believeres())
         raw_stats.append(believers)
-        env_map = create_env_map()
     return raw_stats
 
 
@@ -50,30 +52,22 @@ def raw_stats_to_growth(raw_stats):
     return growth
 
 
-def create_env_map():
-    return EnvMap(
-        n_rows=MATRIX_SIZE,
-        n_cols=MATRIX_SIZE,
-        population_density=P,
-        persons_distribution=PERSONS_DISTRIBUTION,
-    )
 
 
-def plot_experiment(graph, label: str, times=None):
+def plot_experiment(graph, label: str, times=None,cool_down=None):
     size = len(graph)
 
     plt.plot(np.arange(0, size), graph, label=label, color='blue', marker=".", markersize=5)
 
     plt.legend()
-    plt.title(f"repeated experiment :={times}", fontsize=10)
+    plt.title(f"repeated experiment :={times} cool_down:={cool_down}", fontsize=10)
     plt.suptitle("Rumors statistics graph", fontsize=20)
     plt.show()
 
 
-if __name__ == "__main__":
-    TIMES = 10
-    env_map = create_env_map()
-    raw_stats = run_experiment_multiple_times(env_map, TIMES)
+
+def main(env_map_creator: Callable[...,EnvMap],times=10) -> None:
+    raw_stats = run_experiment_multiple_times(env_map_creator, times)
 
     for believers_percentage in raw_stats:
         print(f"population belivers percentage:{believers_percentage}")
@@ -93,3 +87,18 @@ if __name__ == "__main__":
 
     plot_experiment(avg_believers, label="average believers", times=TIMES)
     plot_experiment(avg_growth, label="average growth", times=TIMES)
+
+def create_env_map(cool_down):
+    return EnvMap(
+        n_rows=MATRIX_SIZE,
+        n_cols=MATRIX_SIZE,
+        population_density=P,
+        persons_distribution=PERSONS_DISTRIBUTION,
+        cool_down_l=cool_down,
+    )
+
+
+if __name__ == "__main__":
+    for cool_down in [1,2,3,4,6,8,10]:
+        main(lambda: create_env_map(cool_down))
+
