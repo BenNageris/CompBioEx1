@@ -85,8 +85,8 @@ def main(env_map_creator: Callable[...,EnvMap],times=10) -> None:
         print()
     print(f"Average growth per turn:={avg_growth}")
 
-    plot_experiment(avg_believers, label="average believers", times=TIMES)
-    plot_experiment(avg_growth, label="average growth", times=TIMES)
+    plot_experiment(avg_believers, label="average believers", times=times)
+    plot_experiment(avg_growth, label="average growth", times=times)
 
 def create_env_map(cool_down):
     return EnvMap(
@@ -99,6 +99,6 @@ def create_env_map(cool_down):
 
 
 if __name__ == "__main__":
-    for cool_down in [1,2,3,4,6,8,10]:
+    for cool_down in [2,3,4,6,8,10,1]:
         main(lambda: create_env_map(cool_down))
 
