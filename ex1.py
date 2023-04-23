@@ -10,8 +10,6 @@ Location = typing.NamedTuple("Location", [("x", int), ("y", int)])
 MATRIX_SIZE = 100
 
 P = 1  # population density
-L = 10
-
 
 class DoubtLevel(Enum):
     S1 = 1
@@ -88,7 +86,7 @@ class PersonCell(Cell):
             self,
             state,
             position,
-            cool_down_episode_countdown: int = L):
+            cool_down_episode_countdown):
         super().__init__(state=state.value, position=position)
         self._probability_to_believe = PROBABILITY_TO_BELIEVE[state]
         self._doubt_level = state
@@ -186,7 +184,9 @@ class EnvMap:
             n_cols: int,
             population_density: float,
             persons_distribution: Dict[DoubtLevel, float],
+            cool_down_l: int
     ):
+        self.cool_down_l = cool_down_l
         self.doubt_level_locations_dict = None
         self.persons_location = None
         self._n_rows = n_rows
@@ -267,7 +267,7 @@ class EnvMap:
             self._matrix[x][y] = PersonCell(
                 state=doubt_level,
                 position=Location(x=x, y=y),
-            )
+                cool_down_episode_countdown=self.cool_down_l)
         for row in range(self._n_rows):
             for col in range(self._n_cols):
                 if self._matrix[row][col] is None:
