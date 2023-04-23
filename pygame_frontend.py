@@ -1,7 +1,7 @@
 import pygame
 
 from ex1 import EnvMap
-from ex1 import L,P,PERSONS_DISTRIBUTION,MATRIX_SIZE
+from ex1 import P,PERSONS_DISTRIBUTION,MATRIX_SIZE
 
 class Board:
     def __init__(self, board_size, tile_size, env_map: EnvMap):
@@ -108,6 +108,9 @@ if __name__ == "__main__":
         n_cols=MATRIX_SIZE,
         population_density=P,
         persons_distribution=PERSONS_DISTRIBUTION,
+        cool_down_l=4,
+        location_shape='square', distribution_rule='space'
+
     )
 
     # Create a new Board instance with a board size of MATRIX_SIZE and a tile size of 50

@@ -95,6 +95,7 @@ def create_env_map(cool_down):
         population_density=P,
         persons_distribution=PERSONS_DISTRIBUTION,
         cool_down_l=cool_down,
+        location_shape='square', distribution_rule='space'
     )
 
 
