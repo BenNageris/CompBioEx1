@@ -5,20 +5,14 @@ from itertools import product
 from typing import Dict, Tuple, List
 import typing
 
+from DoubtLevel import DoubtLevel
+from persons_location_generator import PersonsLocationGenerator
+
 Location = typing.NamedTuple("Location", [("x", int), ("y", int)])
 
 MATRIX_SIZE = 100
 
-P = 1  # population density
-L = 10
-
-
-class DoubtLevel(Enum):
-    S1 = 1
-    S2 = 2
-    S3 = 3
-    S4 = 4
-
+P = 0.64  # population density
 
 MIN_DOUBT_LEVEL = 1
 
@@ -88,7 +82,7 @@ class PersonCell(Cell):
             self,
             state,
             position,
-            cool_down_episode_countdown: int = L):
+            cool_down_episode_countdown):
         super().__init__(state=state.value, position=position)
         self._probability_to_believe = PROBABILITY_TO_BELIEVE[state]
         self._doubt_level = state
@@ -186,7 +180,13 @@ class EnvMap:
             n_cols: int,
             population_density: float,
             persons_distribution: Dict[DoubtLevel, float],
+            cool_down_l: int,
+            location_shape:str,
+            distribution_rule:str,
+        location_generator = PersonsLocationGenerator(),
     ):
+        self.location_generator = location_generator
+        self.cool_down_l = cool_down_l
         self.doubt_level_locations_dict = None
         self.persons_location = None
         self._n_rows = n_rows
@@ -203,7 +203,7 @@ class EnvMap:
         self._persons_distribution = persons_distribution
         self._matrix: List[List[Cell]] = self._create_matrix(n_rows=n_rows, n_cols=n_cols)
         self._num_dimensions = 2
-        self.init_matrix()
+        self.init_matrix(location_shape=location_shape,distribution_rule=distribution_rule)
 
     @staticmethod
     def _create_matrix(n_rows: int, n_cols: int) -> typing.List[typing.List[typing.Any]]:
@@ -243,19 +243,37 @@ class EnvMap:
             )
         return doubt_level_locations_dict
 
-    def init_matrix(self):
+    def init_matrix(self, location_shape, distribution_rule):
         # init matrix with cells
         n_person_cells = int(self._n_cols * self._n_rows * self._population_density)
 
-        self.persons_location = random.sample(
-            population=list(product(range(self._n_rows), range(self._n_cols))),
-            k=n_person_cells,
-        )
+        if location_shape == 'random':
+            self.persons_location = self.location_generator.random_locations(n_person_cells=n_person_cells,
+                                                                             n_cols=self._n_cols,
+                                                                             n_rows=self._n_rows)
+        elif location_shape == 'line':
+            self.persons_location = self.location_generator.lines_location(n_person_cells=n_person_cells,
+                                                                             n_cols=self._n_cols,
+                                                                             n_rows=self._n_rows)
+        elif location_shape == 'square':
+            self.persons_location = self.location_generator.square_location(n_person_cells=n_person_cells,
+                                                                             n_cols=self._n_cols,
+                                                                             n_rows=self._n_rows)
 
-        self.doubt_level_locations_dict = self._sample_for_each_doubt_level(
-            persons_location=self.persons_location,
-            persons_distribution=self._persons_distribution,
-        )
+        if distribution_rule == 'space':
+            self.doubt_level_locations_dict = self.location_generator.doubt_sample_easy_believer_next_to_not(persons_location=self.persons_location)
+        elif distribution_rule == 'k_space':
+            self.doubt_level_locations_dict = self.location_generator.doubt_sample_easy_believer_next_to_k_hard_believers(
+                persons_location=self.persons_location)
+        elif distribution_rule == 'line_space':
+            self.doubt_level_locations_dict =self.location_generator.doubt_sample_line_between_easy_believer_hard_believers(
+                persons_location=self.persons_location,easy_doubt=[DoubtLevel.S1],hard_doubt=[DoubtLevel.S4])
+        else:
+            # default
+            self.doubt_level_locations_dict = self._sample_for_each_doubt_level(
+                persons_location=self.persons_location,
+                persons_distribution=self._persons_distribution,
+            )
         self._init_matrix_cells(
             doubt_level_locations_dict=self.doubt_level_locations_dict
         )
@@ -267,7 +285,7 @@ class EnvMap:
             self._matrix[x][y] = PersonCell(
                 state=doubt_level,
                 position=Location(x=x, y=y),
-            )
+                cool_down_episode_countdown=self.cool_down_l)
         for row in range(self._n_rows):
             for col in range(self._n_cols):
                 if self._matrix[row][col] is None:
@@ -295,7 +313,7 @@ class EnvMap:
         print(f"Something is wrong, cell not found")
         return None, None
 
-    def _get_all_neighbors_location(self, location: Location) -> Counter[Location]:
+    def _get_all_neighbors_location(self, location: Location):# -> Counter[Location]:
         all_neighbors = Counter()
         for i in [-1, 0, 1]:
             for j in [-1, 0, 1]:
@@ -392,6 +410,8 @@ if __name__ == "__main__":
         n_cols=MATRIX_SIZE,
         population_density=P,
         persons_distribution=PERSONS_DISTRIBUTION,
+        cool_down_l=4,
+        location_shape='square',distribution_rule='space'
     )
     for i in range(100):
         print(f"turn {i}==================")
