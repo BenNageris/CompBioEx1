@@ -54,13 +54,13 @@ def raw_stats_to_growth(raw_stats):
 
 
 
-def plot_experiment(graph, label: str, times=None,cool_down=None):
+def plot_experiment(graph, label: str, times=None,cool_down=None,shape=None,dist=None,p=P):
     size = len(graph)
 
     plt.plot(np.arange(0, size), graph, label=label, color='blue', marker=".", markersize=5)
 
     plt.legend()
-    plt.title(f"repeated experiment :={times} cool_down:={cool_down}", fontsize=10)
+    plt.title(f"repeated experiment :={times} P:={p} cool_down:={cool_down} shape:={shape} dist={dist}", fontsize=10)
     plt.suptitle("Rumors statistics graph", fontsize=20)
     plt.show()
 
@@ -85,8 +85,8 @@ def main(env_map_creator: Callable[...,EnvMap],times=10) -> None:
         print()
     print(f"Average growth per turn:={avg_growth}")
 
-    plot_experiment(avg_believers, label="average believers", times=times,cool_down=cool_down)
-    plot_experiment(avg_growth, label="average growth", times=times,cool_down=cool_down)
+    plot_experiment(avg_believers, label="average believers", times=times,cool_down=4, shape='square', dist='3 lines space',p=P)
+    plot_experiment(avg_growth, label="average growth", times=times,cool_down=4,shape='square', dist='3 lines space',p=P)
 
 def create_env_map(cool_down):
     return EnvMap(
@@ -95,11 +95,10 @@ def create_env_map(cool_down):
         population_density=P,
         persons_distribution=PERSONS_DISTRIBUTION,
         cool_down_l=cool_down,
-        location_shape='square', distribution_rule='space'
+        location_shape='square', distribution_rule='line_space'
     )
 
 
 if __name__ == "__main__":
-    for cool_down in [2,3,4,6,8,10,1]:
-        main(lambda: create_env_map(cool_down))
+    main(lambda: create_env_map(4))
 

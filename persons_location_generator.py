@@ -1,6 +1,8 @@
 import math
 import random
 from itertools import product
+from typing import List
+
 from DoubtLevel import DoubtLevel
 
 class PersonsLocationGenerator:
@@ -44,6 +46,26 @@ class PersonsLocationGenerator:
                 doubt_level_locations_dict[location] = DoubtLevel.S1
             else:
                 doubt_level_locations_dict[location] = DoubtLevel.S4
+        return doubt_level_locations_dict
+
+    @staticmethod
+    def doubt_sample_easy_believer_next_to_k_hard_believers(persons_location,k=3):
+        doubt_level_locations_dict = {}
+        for i, location in enumerate(persons_location):
+            if i % k == 0:
+                doubt_level_locations_dict[location] = DoubtLevel.S1
+            else:
+                doubt_level_locations_dict[location] = DoubtLevel.S3
+        return doubt_level_locations_dict
+
+    @staticmethod
+    def doubt_sample_line_between_easy_believer_hard_believers(persons_location, easy_doubt: List, hard_doubt: List):
+        doubt_level_locations_dict = {}
+        for i, location in enumerate(persons_location):
+            if location[0] % 4 == 0:
+                doubt_level_locations_dict[location] = random.choice(easy_doubt)
+            else:
+                doubt_level_locations_dict[location] = random.choice(hard_doubt)
         return doubt_level_locations_dict
 
     @staticmethod

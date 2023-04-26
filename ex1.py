@@ -12,7 +12,7 @@ Location = typing.NamedTuple("Location", [("x", int), ("y", int)])
 
 MATRIX_SIZE = 100
 
-P = 1  # population density
+P = 0.64  # population density
 
 MIN_DOUBT_LEVEL = 1
 
@@ -259,17 +259,21 @@ class EnvMap:
             self.persons_location = self.location_generator.square_location(n_person_cells=n_person_cells,
                                                                              n_cols=self._n_cols,
                                                                              n_rows=self._n_rows)
-        #default
-        self.doubt_level_locations_dict = self._sample_for_each_doubt_level(
-            persons_location=self.persons_location,
-            persons_distribution=self._persons_distribution,
-        )
 
         if distribution_rule == 'space':
-            real_doubt = self.location_generator.doubt_sample_easy_believer_next_to_not(persons_location=self.persons_location)
-            self.doubt_level_locations_dict = self.location_generator.merge_doubt_dict(first=real_doubt,
-                                                                                      second=self.doubt_level_locations_dict)
-
+            self.doubt_level_locations_dict = self.location_generator.doubt_sample_easy_believer_next_to_not(persons_location=self.persons_location)
+        elif distribution_rule == 'k_space':
+            self.doubt_level_locations_dict = self.location_generator.doubt_sample_easy_believer_next_to_k_hard_believers(
+                persons_location=self.persons_location)
+        elif distribution_rule == 'line_space':
+            self.doubt_level_locations_dict =self.location_generator.doubt_sample_line_between_easy_believer_hard_believers(
+                persons_location=self.persons_location,easy_doubt=[DoubtLevel.S1],hard_doubt=[DoubtLevel.S4])
+        else:
+            # default
+            self.doubt_level_locations_dict = self._sample_for_each_doubt_level(
+                persons_location=self.persons_location,
+                persons_distribution=self._persons_distribution,
+            )
         self._init_matrix_cells(
             doubt_level_locations_dict=self.doubt_level_locations_dict
         )
