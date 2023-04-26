@@ -187,14 +187,12 @@ class EnvMap:
             n_cols: int,
             population_density: float,
             persons_distribution: Dict[DoubtLevel, float],
-            n_cooldown: int,
             policy: Callable,
             cool_down_l: int
     ):
         self.cool_down_l = cool_down_l
         self.doubt_level_locations_dict = None
         self.persons_location = None
-        self._n_cooldown = n_cooldown
         self._n_rows = n_rows
         self._n_cols = n_cols
         self._policy = policy
@@ -210,7 +208,7 @@ class EnvMap:
         self._persons_distribution = persons_distribution
         self._matrix: List[List[Cell]] = self._create_matrix(n_rows=n_rows, n_cols=n_cols)
         self._num_dimensions = 2
-        self.init_matrix(n_cooldown=self._n_cooldown)
+        self.init_matrix(n_cooldown=self.cool_down_l)
 
     @staticmethod
     def _create_matrix(n_rows: int, n_cols: int) -> typing.List[typing.List[typing.Any]]:
@@ -264,13 +262,12 @@ class EnvMap:
             persons_distribution=self._persons_distribution,
         )
         self._init_matrix_cells(
-            doubt_level_locations_dict=self.doubt_level_locations_dict,
-            n_cooldown=n_cooldown
+            doubt_level_locations_dict=self.doubt_level_locations_dict
         )
 
         self._init_first_spread_rumor()
 
-    def _init_matrix_cells(self, doubt_level_locations_dict: Dict[Tuple[int, int], DoubtLevel], n_cooldown: int):
+    def _init_matrix_cells(self, doubt_level_locations_dict: Dict[Tuple[int, int], DoubtLevel]):
         for (x, y), doubt_level in doubt_level_locations_dict.items():
             self._matrix[x][y] = PersonCell(
                 state=doubt_level,
@@ -286,7 +283,6 @@ class EnvMap:
     def _get_all_neighbors_location(self, location: Location):# -> Counter[Location]:
         all_neighbors = Counter()
         for neighbor_location in self._policy(location):
-            # neighbor_location = Location(location.x + i, location.y + j)
             if neighbor_location in self.persons_location:
                 all_neighbors.update([neighbor_location])
         return all_neighbors
@@ -389,7 +385,7 @@ if __name__ == "__main__":
         n_cols=MATRIX_SIZE,
         population_density=P,
         persons_distribution=PERSONS_DISTRIBUTION,
-        n_cooldown=4,
+        cool_down_l=4,
         policy=all_around_policy
     )
     for i in range(100):

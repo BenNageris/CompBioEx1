@@ -156,7 +156,7 @@ if __name__ == "__main__":
         n_cols=MATRIX_SIZE,
         population_density=P,
         persons_distribution=PERSONS_DISTRIBUTION,
-        n_cooldown=n_cooldown,
+        cool_down_l=n_cooldown,
         policy=wrap_all_around_policy,
         # policy=all_around_policy
     )
