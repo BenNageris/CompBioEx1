@@ -1,5 +1,6 @@
 from typing import Callable
 
+from ex1 import EnvMap, all_around_policy, four_directions_policy, wrap_all_around_policy
 from ex1 import EnvMap, MATRIX_SIZE, P, PERSONS_DISTRIBUTION
 import matplotlib.pyplot as plt
 import numpy as np
@@ -88,6 +89,7 @@ def main(env_map_creator: Callable[...,EnvMap],times=10) -> None:
     plot_experiment(avg_believers, label="average believers", times=times,cool_down=4, shape='square', dist='3 lines space',p=P)
     plot_experiment(avg_growth, label="average growth", times=times,cool_down=4,shape='square', dist='3 lines space',p=P)
 
+
 def create_env_map(cool_down):
     return EnvMap(
         n_rows=MATRIX_SIZE,
@@ -95,10 +97,13 @@ def create_env_map(cool_down):
         population_density=P,
         persons_distribution=PERSONS_DISTRIBUTION,
         cool_down_l=cool_down,
-        location_shape='square', distribution_rule='line_space'
+        policy=all_around_policy,
+        location_shape='random',
+        distribution_rule='default'
     )
 
 
 if __name__ == "__main__":
-    main(lambda: create_env_map(4))
+    for cool_down in [2, 3, 4, 6, 8, 10, 1]:
+        main(lambda: create_env_map(cool_down))
 

@@ -12,30 +12,31 @@ class PersonsLocationGenerator:
             population=list(product(range(n_rows), range(n_cols))),
             k=n_person_cells,
         )
-        return persons_location
+        return set(persons_location)
 
     @staticmethod
     def lines_location(n_person_cells=None, n_cols=None, n_rows=None):
         counter = 0
-        locations = []
+        locations = set()
         for i in range(n_rows):
             for j in range(n_cols):
                 if counter >= n_person_cells:
                     return locations
-                locations.append((i,j))
+                locations.add((i, j))
                 counter += 1
         return locations
 
     @staticmethod
     def square_location(n_person_cells=None, n_cols=None, n_rows=None):
-        locations = []
+        locations = set()
         root = int(math.floor(math.sqrt(n_person_cells)))
-        assert math.pow(root,2) == n_person_cells, "number of persons cell when square shape used should be n^2 for natural n"
+        print(f"root:{root}")
+        assert math.pow(root, 2) == n_person_cells, "number of persons cell when square shape used should be n^2 for natural n"
         margin_row = int((n_cols-root)/2)
         margin_col = int((n_rows-root)/2)
         for i in range(margin_row, margin_row+root):
             for j in range(margin_col, margin_col+root):
-                locations.append((i, j))
+                locations.add((i, j))
         return locations
 
     @staticmethod

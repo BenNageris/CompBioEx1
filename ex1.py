@@ -2,7 +2,7 @@ import random
 from collections import Counter
 from enum import Enum
 from itertools import product
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple, List, Callable
 import typing
 
 from DoubtLevel import DoubtLevel
@@ -12,7 +12,10 @@ Location = typing.NamedTuple("Location", [("x", int), ("y", int)])
 
 MATRIX_SIZE = 100
 
-P = 0.64  # population density
+P = 0.8  # population density
+L = 10
+
+
 
 MIN_DOUBT_LEVEL = 1
 
@@ -180,17 +183,19 @@ class EnvMap:
             n_cols: int,
             population_density: float,
             persons_distribution: Dict[DoubtLevel, float],
+            policy: Callable,
             cool_down_l: int,
-            location_shape:str,
-            distribution_rule:str,
-        location_generator = PersonsLocationGenerator(),
+            location_shape: str,
+            distribution_rule: str,
+            location_generator=PersonsLocationGenerator()
     ):
         self.location_generator = location_generator
         self.cool_down_l = cool_down_l
         self.doubt_level_locations_dict = None
-        self.persons_location = None
+        self.persons_location: Dict[Location, PersonCell] = {}
         self._n_rows = n_rows
         self._n_cols = n_cols
+        self._policy = policy
         if population_density > 1 or population_density < 0:
             raise Exception(
                 f"Invalid value of population density, it should be between 0 to 1, not:{population_density}"
@@ -203,7 +208,7 @@ class EnvMap:
         self._persons_distribution = persons_distribution
         self._matrix: List[List[Cell]] = self._create_matrix(n_rows=n_rows, n_cols=n_cols)
         self._num_dimensions = 2
-        self.init_matrix(location_shape=location_shape,distribution_rule=distribution_rule)
+        self.init_matrix(location_shape=location_shape, distribution_rule=distribution_rule)
 
     @staticmethod
     def _create_matrix(n_rows: int, n_cols: int) -> typing.List[typing.List[typing.Any]]:
@@ -234,7 +239,7 @@ class EnvMap:
         for doubt_level in DoubtLevel:
             n_doubt_level = n_doubt_level_dict[doubt_level]
             n_doubt_level_randomized_locations = random.sample(
-                persons_location, k=n_doubt_level
+                list(persons_location), k=n_doubt_level
             )
             for loca in n_doubt_level_randomized_locations:
                 doubt_level_locations_dict[loca] = doubt_level
@@ -253,18 +258,20 @@ class EnvMap:
                                                                              n_rows=self._n_rows)
         elif location_shape == 'line':
             self.persons_location = self.location_generator.lines_location(n_person_cells=n_person_cells,
-                                                                             n_cols=self._n_cols,
-                                                                             n_rows=self._n_rows)
+                                                                           n_cols=self._n_cols,
+                                                                           n_rows=self._n_rows)
         elif location_shape == 'square':
             self.persons_location = self.location_generator.square_location(n_person_cells=n_person_cells,
-                                                                             n_cols=self._n_cols,
-                                                                             n_rows=self._n_rows)
-
+                                                                            n_cols=self._n_cols,
+                                                                            n_rows=self._n_rows)
         if distribution_rule == 'space':
-            self.doubt_level_locations_dict = self.location_generator.doubt_sample_easy_believer_next_to_not(persons_location=self.persons_location)
+            self.doubt_level_locations_dict = self.location_generator.doubt_sample_easy_believer_next_to_not(
+                persons_location=self.persons_location
+            )
         elif distribution_rule == 'k_space':
             self.doubt_level_locations_dict = self.location_generator.doubt_sample_easy_believer_next_to_k_hard_believers(
-                persons_location=self.persons_location)
+                persons_location=self.persons_location
+            )
         elif distribution_rule == 'line_space':
             self.doubt_level_locations_dict =self.location_generator.doubt_sample_line_between_easy_believer_hard_believers(
                 persons_location=self.persons_location,easy_doubt=[DoubtLevel.S1],hard_doubt=[DoubtLevel.S4])
@@ -293,54 +300,15 @@ class EnvMap:
                         position=Location(x=row, y=col)
                     )
 
-    def _get_doubt(self, location: Location):
-        for di in self.doubt_level_locations_dict:
-            if location in di:
-                return di
-
-    def _cell_got_rumor(self, location: Location) -> bool:
-        # if no such location or rumor was previously accepted\rejected
-        if location not in self.persons_location:
-            # or self._matrix[location.x][location.y] is not None
-            return False
-        return self._matrix[location.x][location.y].should_believe_to_rumour()
-
-    def get_cell_location(self, cell: Cell) -> Tuple[int, int]:
-        for row in range(self._n_rows):
-            for col in range(self._n_cols):
-                if self._matrix[row][col] is cell:
-                    return row, col
-        print(f"Something is wrong, cell not found")
-        return None, None
-
-    def _get_all_neighbors_location(self, location: Location):# -> Counter[Location]:
+    def _get_all_neighbors_location(self, location: Location):
         all_neighbors = Counter()
-        for i in [-1, 0, 1]:
-            for j in [-1, 0, 1]:
-                if i == 0 and j == 0:
-                    # can't tell a rumour to myself
-                    continue
-                neighbor_location = Location(location.x + i, location.y + j)
-                if neighbor_location in self.persons_location:
-                    all_neighbors.update([neighbor_location])
+        for neighbor_location in self._policy(location):
+            if neighbor_location in self.persons_location:
+                all_neighbors.update([neighbor_location])
         return all_neighbors
 
-    def _get_believed_neighbors_location(self, x: int, y: int) -> List[Location]:
-        rumours_believers: List[Location] = []
-        # TODO: fix WRAP-AROUND policy is not an obligation!
-        for i in [-1, 0, 1]:
-            for j in [-1, 0, 1]:
-                if i == 0 and j == 0:
-                    # can't tell a rumour to myself
-                    continue
-                neighbor = Location(x + i, y + j)
-                if self._cell_got_rumor(neighbor):
-                    print(f"neighbor {neighbor} believes in rumour")
-                    rumours_believers.append(neighbor)
-        return rumours_believers
-
     def _init_first_spread_rumor(self) -> None:
-        first_spreader: PersonCell = self._get_random_person_cell()
+        first_spreader: PersonCell = self._get_random_person()
         first_spreader.toggle_heard_rumour_sometime()
         first_spreader.set_heard_rumour(heard_rumour=True)
         first_spreader.set_n_cool_down_episode_countdown(n=0)
@@ -390,8 +358,12 @@ class EnvMap:
         for row, col in self.persons_location:
             self._matrix[row][col].next_turn()
 
-    def _get_random_person_cell(self) -> PersonCell:
-        x, y = random.choice(self.persons_location)
+    # def _get_random_person_cell(self) -> PersonCell:
+    #     x, y = random.choice(list(self.persons_location))
+    #     return self._matrix[x][y]
+
+    def _get_random_person(self) -> PersonCell:
+        x, y = random.choice(list(self.persons_location))
         return self._matrix[x][y]
 
     def calculate_percentage_of_believeres(self):
@@ -404,6 +376,34 @@ class EnvMap:
         return cnt / n_persons
 
 
+def wrap_all_around_policy(location: Location):
+    for i in [-1, 0, 1]:
+        for j in [-1, 0, 1]:
+            if i == 0 and j == 0:
+                continue
+            neighbor_x = (location.x + i) % MATRIX_SIZE
+            neighbor_y = (location.y + j) % MATRIX_SIZE
+            yield Location(neighbor_x, neighbor_y)
+
+
+def all_around_policy(location: Location):
+    for i in [-1, 0, 1]:
+        for j in [-1, 0, 1]:
+            if i == 0 and j == 0:
+                continue
+            neighbor_x = location.x + i
+            neighbor_y = location.y + j
+            if neighbor_x < 0 or neighbor_x >= MATRIX_SIZE or neighbor_y < 0 or neighbor_y >= MATRIX_SIZE:
+                continue
+            yield Location(neighbor_x, neighbor_y)
+
+
+def four_directions_policy():
+    for i in [-1, 1]:
+        yield 0, i
+        yield i, 0
+
+
 if __name__ == "__main__":
     env_map = EnvMap(
         n_rows=MATRIX_SIZE,
@@ -411,7 +411,9 @@ if __name__ == "__main__":
         population_density=P,
         persons_distribution=PERSONS_DISTRIBUTION,
         cool_down_l=4,
-        location_shape='square',distribution_rule='space'
+        policy=all_around_policy,
+        location_shape='random',
+        distribution_rule='default'
     )
     for i in range(100):
         print(f"turn {i}==================")
