@@ -26,6 +26,7 @@ class Board:
         # Initialize Pygame
         pygame.init()
 
+        self.clock = pygame.time.Clock()
         # Set the screen dimensions
         screen_width = self.board_size * self.tile_size
         screen_height = self.board_size * self.tile_size
@@ -43,12 +44,19 @@ class Board:
                     self.board[i][j] = self.WHITE
         return board
 
+    @staticmethod
+    def handle_quit_and_escape_events():
+        status = True
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                status = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    status = False
+        return status
+
     def run(self, number_of_episodes: int = 100):
-        cell_margin = 1
-        left_margin = 20
-        top_margin = 1
         # Set the flag to continue the game
-        running = True
         surface = pygame.display.set_mode((
             self.board_size * self.tile_size + 40,
             self.board_size * self.tile_size + 40 + 100  # Add 100 to account for the text box and start button
@@ -58,6 +66,7 @@ class Board:
         background_image = pygame.image.load('background.jpg')
         surface.blit(background_image, (0, 0))
 
+        running = True
         # Loop until the user quits
         for i in range(number_of_episodes):
             if not running:
@@ -74,12 +83,12 @@ class Board:
                     pygame.draw.rect(surface, self.board[i][j], tile_rect, 0)
                     pygame.draw.rect(surface, self.GRAY, tile_rect, 1)
 
+            running = self.handle_quit_and_escape_events()
             # Update the display
             pygame.display.update()
+            self.clock.tick(100)
 
-            # Update the screen
-            pygame.display.flip()
-
+        self.clock.tick(100)
         # Quit Pygame
         pygame.quit()
 

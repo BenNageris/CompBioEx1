@@ -192,7 +192,7 @@ class EnvMap:
     ):
         self.cool_down_l = cool_down_l
         self.doubt_level_locations_dict = None
-        self.persons_location = None
+        self.persons_location: Dict[Location, PersonCell] = {}
         self._n_rows = n_rows
         self._n_cols = n_cols
         self._policy = policy
@@ -239,7 +239,7 @@ class EnvMap:
         for doubt_level in DoubtLevel:
             n_doubt_level = n_doubt_level_dict[doubt_level]
             n_doubt_level_randomized_locations = random.sample(
-                persons_location, k=n_doubt_level
+                list(persons_location), k=n_doubt_level
             )
             for loca in n_doubt_level_randomized_locations:
                 doubt_level_locations_dict[loca] = doubt_level
@@ -252,9 +252,11 @@ class EnvMap:
         # init matrix with cells
         n_person_cells = int(self._n_cols * self._n_rows * self._population_density)
 
-        self.persons_location = random.sample(
-            population=list(product(range(self._n_rows), range(self._n_cols))),
-            k=n_person_cells,
+        self.persons_location = set(
+            random.sample(
+                population=list(product(range(self._n_rows), range(self._n_cols))),
+                k=n_person_cells,
+            )
         )
 
         self.doubt_level_locations_dict = self._sample_for_each_doubt_level(
@@ -338,7 +340,7 @@ class EnvMap:
             self._matrix[row][col].next_turn()
 
     def _get_random_person_cell(self) -> PersonCell:
-        x, y = random.choice(self.persons_location)
+        x, y = random.choice(list(self.persons_location))
         return self._matrix[x][y]
 
     def calculate_percentage_of_believeres(self):
