@@ -6,6 +6,9 @@ from easygui import multenterbox
 from ex1 import EnvMap, all_around_policy, four_directions_policy, wrap_all_around_policy
 from ex1 import L, P, PERSONS_DISTRIBUTION, MATRIX_SIZE, DoubtLevel
 
+from ex1 import EnvMap
+from ex1 import P,PERSONS_DISTRIBUTION,MATRIX_SIZE
+
 NUMBER_OF_PARAMETERS = 7
 DEFAULT_NUMBER_OF_EPISODES = 100
 
@@ -57,6 +60,7 @@ class Board:
 
     def run(self, number_of_episodes: int = 100):
         # Set the flag to continue the game
+        running = True
         surface = pygame.display.set_mode((
             self.board_size * self.tile_size + 40,
             self.board_size * self.tile_size + 40 + 100  # Add 100 to account for the text box and start button
@@ -168,6 +172,9 @@ if __name__ == "__main__":
         cool_down_l=n_cooldown,
         policy=wrap_all_around_policy,
         # policy=all_around_policy
+        location_shape='random',
+        distribution_rule='space'
+
     )
 
     # Create a new Board instance with a board size of MATRIX_SIZE and a tile size of 50
