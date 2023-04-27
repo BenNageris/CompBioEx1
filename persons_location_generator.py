@@ -2,8 +2,8 @@ import math
 import random
 from itertools import product
 from typing import List
-
 from DoubtLevel import DoubtLevel
+
 
 class PersonsLocationGenerator:
     @staticmethod
@@ -75,20 +75,3 @@ class PersonsLocationGenerator:
         for k, v in first.items():
             di[k] = v
         return di
-    def _sample_for_each_doubt_level(persons_location, persons_distribution):
-        n_persons = len(persons_location)
-        n_doubt_level_dict = EnvMap._get_n_doubt_level_dict(
-            number_of_persons=n_persons, persons_distribution=persons_distribution
-        )
-        doubt_level_locations_dict = {}
-        for doubt_level in DoubtLevel:
-            n_doubt_level = n_doubt_level_dict[doubt_level]
-            n_doubt_level_randomized_locations = random.sample(
-                persons_location, k=n_doubt_level
-            )
-            for loca in n_doubt_level_randomized_locations:
-                doubt_level_locations_dict[loca] = doubt_level
-            persons_location = list(
-                set(persons_location) - set(n_doubt_level_randomized_locations)
-            )
-        return doubt_level_locations_dict
