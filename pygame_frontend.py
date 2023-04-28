@@ -3,7 +3,8 @@ from typing import List
 import pygame
 from easygui import multenterbox
 
-from ex1 import EnvMap, all_around_policy, four_directions_policy, wrap_all_around_policy
+from ex1 import EnvMap, all_around_policy, four_directions_policy, wrap_all_around_policy, LocationShape, \
+    DistributionRule
 from ex1 import L, P, PERSONS_DISTRIBUTION, MATRIX_SIZE, DoubtLevel
 
 from ex1 import EnvMap
@@ -172,9 +173,8 @@ if __name__ == "__main__":
         cool_down_l=n_cooldown,
         policy=wrap_all_around_policy,
         # policy=all_around_policy
-        location_shape='random',
-        distribution_rule='space'
-
+        location_shape=LocationShape.Frame,
+        distribution_rule=DistributionRule.Random
     )
 
     # Create a new Board instance with a board size of MATRIX_SIZE and a tile size of 50

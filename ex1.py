@@ -15,6 +15,19 @@ P = 0.8  # population density
 L = 10
 MIN_DOUBT_LEVEL = 1
 
+class LocationShape(Enum):
+    Random = 1
+    Square = 2
+    Lines = 3
+    DavidStar = 4
+    Frame = 5
+
+class DistributionRule(Enum):
+    Random = 1
+    Space = 2
+    K_Space = 3
+    Line_Space = 4
+
 
 class CellStates(Enum):
     S1 = DoubtLevel.S1
@@ -177,8 +190,8 @@ class EnvMap:
             persons_distribution: Dict[DoubtLevel, float],
             policy: Callable,
             cool_down_l: int,
-            location_shape: str,
-            distribution_rule: str,
+            location_shape: LocationShape,
+            distribution_rule: DistributionRule,
             location_generator=PersonsLocationGenerator()
     ):
         self.location_generator = location_generator
@@ -240,35 +253,44 @@ class EnvMap:
             )
         return doubt_level_locations_dict
 
-    def init_matrix(self, location_shape, distribution_rule):
+    def init_matrix(self, location_shape: LocationShape, distribution_rule):
         # init matrix with cells
         n_person_cells = int(self._n_cols * self._n_rows * self._population_density)
 
-        if location_shape == 'random':
+        if location_shape == LocationShape.Random:
             self.persons_location = self.location_generator.random_locations(n_person_cells=n_person_cells,
                                                                              n_cols=self._n_cols,
                                                                              n_rows=self._n_rows)
-        elif location_shape == 'line':
+        elif location_shape == LocationShape.Lines:
             self.persons_location = self.location_generator.lines_location(n_person_cells=n_person_cells,
                                                                            n_cols=self._n_cols,
                                                                            n_rows=self._n_rows)
-        elif location_shape == 'square':
+        elif location_shape == LocationShape.Square:
             self.persons_location = self.location_generator.square_location(n_person_cells=n_person_cells,
                                                                             n_cols=self._n_cols,
                                                                             n_rows=self._n_rows)
-        if distribution_rule == 'space':
+        elif location_shape == LocationShape.DavidStar:
+            self.persons_location = self.location_generator.david_star_locations(n_person_cells=n_person_cells,
+                                                                            n_cols=self._n_cols,
+                                                                            n_rows=self._n_rows)
+        elif location_shape == LocationShape.Frame:
+            self.persons_location = self.location_generator.frame_location(n_person_cells=n_person_cells,
+                                                                            n_cols=self._n_cols,
+                                                                            n_rows=self._n_rows)
+
+        if distribution_rule == DistributionRule.Space:
             self.doubt_level_locations_dict = self.location_generator.doubt_sample_easy_believer_next_to_not(
                 persons_location=self.persons_location
             )
-        elif distribution_rule == 'k_space':
+        elif distribution_rule == DistributionRule.K_Space:
             self.doubt_level_locations_dict = self.location_generator.doubt_sample_easy_believer_next_to_k_hard_believers(
                 persons_location=self.persons_location
             )
-        elif distribution_rule == 'line_space':
+        elif distribution_rule == DistributionRule.Line_Space:
             self.doubt_level_locations_dict =self.location_generator.doubt_sample_line_between_easy_believer_hard_believers(
                 persons_location=self.persons_location,easy_doubt=[DoubtLevel.S1],hard_doubt=[DoubtLevel.S4])
         else:
-            # default
+            # default (Random)
             self.doubt_level_locations_dict = self._sample_for_each_doubt_level(
                 persons_location=self.persons_location,
                 persons_distribution=self._persons_distribution,
@@ -402,8 +424,8 @@ if __name__ == "__main__":
         persons_distribution=PERSONS_DISTRIBUTION,
         cool_down_l=4,
         policy=all_around_policy,
-        location_shape='random',
-        distribution_rule='default'
+        location_shape=LocationShape.Frame,
+        distribution_rule=DistributionRule.Random
     )
     for i in range(100):
         print(f"turn {i}==================")
