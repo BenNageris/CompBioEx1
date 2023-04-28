@@ -11,7 +11,7 @@ Location = typing.NamedTuple("Location", [("x", int), ("y", int)])
 
 MATRIX_SIZE = 100
 
-P = 0.8  # population density
+P = 0.81  # population density
 L = 10
 MIN_DOUBT_LEVEL = 1
 

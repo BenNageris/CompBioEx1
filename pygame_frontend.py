@@ -173,7 +173,7 @@ if __name__ == "__main__":
         cool_down_l=n_cooldown,
         policy=wrap_all_around_policy,
         # policy=all_around_policy
-        location_shape=LocationShape.Frame,
+        location_shape=LocationShape.DavidStar,
         distribution_rule=DistributionRule.Random
     )
 
