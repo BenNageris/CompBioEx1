@@ -40,6 +40,64 @@ class PersonsLocationGenerator:
         return locations
 
     @staticmethod
+    def frame_location(n_person_cells=None, n_cols=None, n_rows=None):
+        locations = set()
+        for i in range(n_cols):
+            locations.add((0,i))
+            locations.add((n_rows-1,i))
+        for j in range(n_rows):
+            locations.add((j,0))
+            locations.add((j,n_cols-1))
+        return locations
+
+    @staticmethod
+    def david_star_locations(n_person_cells=None, n_cols=None, n_rows=None):
+        locations = set()
+        #center
+        center_x = n_rows/2
+        center_y = n_cols/2
+
+        #sized to make it look lit
+        triangle_height = 30
+        triangle_width = 26
+        extra = -8
+
+        #vertices of the upper triangle
+        upper_left_x = center_x - triangle_width // 2
+        upper_left_y = center_y - triangle_height // 2
+        upper_right_x = center_x + triangle_width // 2
+        upper_right_y = center_y - triangle_height // 2
+        upper_bottom_x = center_x
+        upper_bottom_y = center_y + triangle_height // 2
+
+        #vertices of the lower triangle
+        lower_left_x = center_x - triangle_width // 2
+        lower_left_y = extra + center_y + triangle_height // 2
+        lower_right_x = center_x + triangle_width // 2
+        lower_right_y = extra + center_y + triangle_height // 2
+        lower_top_x = center_x
+        lower_top_y = extra + center_y - triangle_height // 2
+
+        for i in range(n_rows):
+            for j in range(n_cols):
+                # Check upper triangle
+                if (j - upper_left_x) * (upper_bottom_y - upper_left_y) - \
+                        (i - upper_left_y) * (upper_bottom_x - upper_left_x) >= 0 and \
+                        (j - upper_right_x) * (upper_bottom_y - upper_right_y) - \
+                        (i - upper_right_y) * (upper_bottom_x - upper_right_x) <= 0 and \
+                        (j - upper_left_x) * (upper_right_y - upper_left_y) - \
+                        (i - upper_left_y) * (upper_right_x - upper_left_x) <= 0:
+                    locations.add((i,j))
+                # Check lower triangle
+                if (j - lower_left_x) * (lower_top_y - lower_left_y) - \
+                        (i - lower_left_y) * (lower_top_x - lower_left_x) <= 0 and \
+                        (j - lower_right_x) * (lower_top_y - lower_right_y) - \
+                        (i - lower_right_y) * (lower_top_x - lower_right_x) >= 0 and \
+                        (j - lower_left_x) * (lower_right_y - lower_left_y) - \
+                        (i - lower_left_y) * (lower_right_x - lower_left_x) >= 0:
+                    locations.add((i,j))
+        return locations
+    @staticmethod
     def doubt_sample_easy_believer_next_to_not(persons_location):
         doubt_level_locations_dict = {}
         for i, location in enumerate(persons_location):
