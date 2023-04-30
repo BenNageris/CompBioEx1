@@ -199,7 +199,7 @@ if __name__ == "__main__":
         population_density=p,
         persons_distribution=peoples_distribution,
         cool_down_l=n_cooldown,
-        policy=all_around_policy,
+        policy=wrap_all_around_policy,
         location_shape=LocationShape.Random,
         distribution_rule=DistributionRule.Random
     )

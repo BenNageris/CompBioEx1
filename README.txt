@@ -4,6 +4,10 @@ By:
 	1. Yaniv Zimmer 318849908
 	2. Ben Abraham Nageris 206532533
 
+Link to code (in Github):
+	https://github.com/BenNageris/CompBioEx1
+
+Intro:
 In this model, we model the rumor spread process using cell automaton under several rules and limitations.
 In this project, we created a GUI interface & program to model this behaviour and test the influence of different hyperparameters on the spread mechanism and characteristics.
 The simulation was created using Python & pygame.
