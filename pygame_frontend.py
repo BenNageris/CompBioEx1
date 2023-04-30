@@ -1,17 +1,18 @@
 from typing import List
 
 import pygame
+import typing
+import numpy as np
+
 from easygui import multenterbox
-
-from ex1 import EnvMap, all_around_policy, four_directions_policy, wrap_all_around_policy, LocationShape, \
-    DistributionRule
-from ex1 import L, P, PERSONS_DISTRIBUTION, MATRIX_SIZE, DoubtLevel
-
-from ex1 import EnvMap
-from ex1 import P,PERSONS_DISTRIBUTION,MATRIX_SIZE
+import matplotlib.pyplot as plt
+from ex1 import wrap_all_around_policy, all_around_policy, LocationShape, DistributionRule
+from ex1 import L, P, PERSONS_DISTRIBUTION, MATRIX_SIZE, DoubtLevel, EnvMap
 
 NUMBER_OF_PARAMETERS = 7
 DEFAULT_NUMBER_OF_EPISODES = 150
+
+Graph = typing.NamedTuple("Graph", [("graph", typing.List[int]), ("description", str), ("color", str)])
 
 
 class Board:
@@ -70,7 +71,7 @@ class Board:
         # Draw background
         background_image = pygame.image.load('background.jpg')
         surface.blit(background_image, (0, 0))
-
+        believers_percentage = []
         running = True
         # Loop until the user quits
         for i in range(number_of_episodes):
@@ -92,10 +93,12 @@ class Board:
             # Update the display
             pygame.display.update()
             self.clock.tick(100)
+            believers_percentage.append(env_map.calculate_percentage_of_believers())
 
         self.clock.tick(100)
         # Quit Pygame
         pygame.quit()
+        return believers_percentage
 
 
 def input_check(parameters: List[str]):
@@ -160,20 +163,44 @@ def extract_parameters(parameters: List[str]):
     return int(n_episodes), float(p), float(d_s1), float(d_s2), float(d_s3), float(d_s4), int(n_cooldown)
 
 
+def plot_experiment(graphs: typing.List[Graph], times=None, shape=None, dist=None, p=P):
+    for graph in graphs:
+        size = len(graph.graph)
+        plt.plot(np.arange(0, size), graph.graph, label=graph.description, color=graph.color, marker=".", markersize=5)
+
+    plt.legend()
+    plt.title(f"repeated experiment :={times} P:={p} shape:={shape} dist={dist}", fontsize=10)
+    plt.suptitle("Rumors statistics graph", fontsize=20)
+    plt.show()
+
+
+def calc_growth(population):
+    growth = []
+    for pop in range(1, len(population)):
+        numbers = (population[pop] - population[pop - 1]) / population[pop - 1] * 100
+        growth.append(numbers)
+    return growth
+
+
 if __name__ == "__main__":
     parameters = create_insert_parameters_window()
     n_episodes, p, d_s1, d_s2, d_s3, d_s4, n_cooldown = extract_parameters(parameters)
-
+    peoples_distribution = {
+        DoubtLevel.S1: d_s1,
+        DoubtLevel.S2: d_s2,
+        DoubtLevel.S3: d_s3,
+        DoubtLevel.S4: d_s4,
+    }
+    print(d_s1,d_s2,d_s3,d_s4)
     TILE_SIZE = 5
     env_map = EnvMap(
         n_rows=MATRIX_SIZE,
         n_cols=MATRIX_SIZE,
-        population_density=P,
-        persons_distribution=PERSONS_DISTRIBUTION,
+        population_density=p,
+        persons_distribution=peoples_distribution,
         cool_down_l=n_cooldown,
-        policy=wrap_all_around_policy,
-        # policy=all_around_policy
-        location_shape=LocationShape.DavidStar,
+        policy=all_around_policy,
+        location_shape=LocationShape.Random,
         distribution_rule=DistributionRule.Random
     )
 
@@ -181,4 +208,32 @@ if __name__ == "__main__":
     board = Board(MATRIX_SIZE, TILE_SIZE, env_map)
 
     # Run the board program
-    board.run(n_episodes)
+    believers_percentage = board.run(n_episodes)
+
+    plot_experiment(
+        [
+            Graph(
+                graph=believers_percentage,
+                color="blue",
+                description="believers percentage"
+            )
+        ],
+        times=1,
+        p=p,
+        shape="random",
+        dist="random"
+    )
+    growth = calc_growth(believers_percentage)
+    plot_experiment(
+        [
+            Graph(
+                graph=growth,
+                color="red",
+                description="Believers percentage growth"
+            )
+        ],
+        times=1,
+        p=p,
+        shape="random",
+        dist="random"
+    )
