@@ -14,11 +14,11 @@ The simulation was created using Python & pygame.
 
 
 Execution Steps:
+	1. git clone https://github.com/BenNageris/CompBioEx1
+	2. cd <PROJECT_DIRECTORY>
+	3. pip3.10 install -r requirements.txt
+	4. python .\pygame_frontend.py
+		(Note that we executed this project with python3.10 & python3.9 - but lower versions might work too)
 
-	1. cd <PROJECT_DIRECTORY>
-	2. pip3.10 install -r requirements.txt
-	3. python .\ex1.py
-		(Note that we executed this project with python3.10 - but lower versions might work too)
 
-
-(*) We tested this program on a Windows PC with Python 3.10 installed.
+(*) We tested this program on a Windows PC & Linux Ubuntu with Python 3.10 & python3.9 installed.
